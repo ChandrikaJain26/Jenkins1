@@ -27,6 +27,31 @@ pipeline {
         stash name: 'app', includes: 'Dockerfile,target/*.jar', allowEmpty: false
       }
     }
+  
+    stage('Functional Testing') {
+      agent { label 'build' }
+      environment {
+        JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+      }
+      steps {
+        sh '''
+          echo "Starting application for functional testing"
+
+          nohup java -jar target/*.jar --server.port=8081 > app.log 2>&1 &
+          APP_PID=$!
+
+          sleep 20
+
+          echo "Checking application URL"
+          curl -f http://localhost:8081/ || exit 1
+
+          echo "Functional testing passed"
+
+          kill $APP_PID
+        '''
+      }
+    }
 
     stage('Docker Build') {
       agent { label 'docker' }
