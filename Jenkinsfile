@@ -52,7 +52,35 @@ pipeline {
         '''
       }
     }
+    
+   stage('Performance Testing') {
+     agent { label 'build' }
+     environment {
+       JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
+       PATH = "${JAVA_HOME}/bin:${env.PATH}"
+     }
+     steps {
+       sh '''
+         echo "Starting application for performance testing"
 
+         nohup java -jar target/*.jar --server.port=8082 > perf.log 2>&1 &
+         APP_PID=$!
+
+         sleep 20
+
+         echo "Running performance test (Apache Benchmark)"
+         ab -n 200 -c 20 http://localhost:8082/ || exit 1
+         
+         echo "Performance testing completed"
+
+         kill $APP_PID
+       '''
+     }
+   }
+
+
+
+    
     stage('Docker Build') {
       agent { label 'docker' }
       steps {
