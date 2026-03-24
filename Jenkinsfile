@@ -5,7 +5,7 @@ pipeline {
     stage('Checkout') {
       agent { label 'build' }
       steps {
-        git branch: 'main', url: 'https://github.com/<your-username>/<your-repo>.git'
+        git branch: 'main', url: 'https://github.com/ChandrikaJain26/Jenkins1.git'
       }
     }
 
