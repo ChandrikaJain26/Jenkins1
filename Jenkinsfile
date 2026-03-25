@@ -80,6 +80,36 @@ pipeline {
 
 
 
+    stage('Sonar Scan') {
+        agent { label 'build' }
+
+        environment {
+            JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
+            PATH = "${JAVA_HOME}/bin:${env.PATH}"
+        }
+
+        steps {
+            withSonarQubeEnv('SonarCloud') {
+                sh '''
+                    echo "Running SonarCloud analysis"
+                    mvn -B sonar:sonar \
+                      -Dsonar.projectKey=jenkins1 \
+                      -Dsonar.organization=ChandrikaJain26
+                '''
+            }
+        }
+    }
+
+    stage('Quality Gate') {
+        agent { label 'build' }
+
+        steps {
+            timeout(time: 60, unit: 'MINUTES') {
+                waitForQualityGate abortPipeline: true
+            }
+        }
+    }
+
     
     stage('Docker Build') {
       agent { label 'docker' }
