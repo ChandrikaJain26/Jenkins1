@@ -94,7 +94,7 @@ pipeline {
                     echo "Running SonarCloud analysis"
                     mvn -B sonar:sonar \
                       -Dsonar.projectKey=jenkins1 \
-                      -Dsonar.organization=ChandrikaJain26
+                      -Dsonar.organization=chandrikajain26
                 '''
             }
         }
