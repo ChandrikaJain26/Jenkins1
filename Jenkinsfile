@@ -100,7 +100,7 @@ pipeline {
     stage('Nexus Push') {
       agent { label 'docker' }
       environment {
-        NEXUS_REGISTRY = "13.206.67.148:8083"
+        NEXUS_REGISTRY = "localhost:8083"
         IMAGE_NAME     = "petclinic"
         IMAGE_TAG      = "${BUILD_NUMBER}"
       }
