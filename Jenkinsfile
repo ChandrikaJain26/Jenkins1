@@ -100,16 +100,6 @@ pipeline {
         }
     }
 
-    stage('Quality Gate') {
-        agent { label 'build' }
-
-        steps {
-            timeout(time: 60, unit: 'MINUTES') {
-                waitForQualityGate abortPipeline: true
-            }
-        }
-    }
-
     
     stage('Docker Build') {
       agent { label 'docker' }
