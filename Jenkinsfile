@@ -46,38 +46,48 @@ pipeline {
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
       }
       steps {
-        sh '''
-          set -eux
+        sh '''#!/bin/bash
+set -euo pipefail
 
-          echo "Starting app for functional testing on port 8081"
+PORT=8081
+JAR_FILE=$(ls -1 target/*.jar | head -n 1)
+echo "Using jar: $JAR_FILE"
 
-          nohup java -jar target/spring-petclinic-4.0.0-SNAPSHOT.jar --server.port=8081 > app.log 2>&1 &
-          APP_PID=$!
+# If something is already using the port, show it (doesn't fail)
+echo "Checking port $PORT before start..."
+ss -lntp | grep ":$PORT" || true
 
-          echo "APP_PID=$APP_PID"
-          sleep 2
+echo "Starting app on port $PORT"
+nohup java -jar "$JAR_FILE" --server.port=$PORT > app.log 2>&1 &
+APP_PID=$!
+echo "APP_PID=$APP_PID"
 
-          echo "Waiting for application to start..."
-          for i in {1..15}; do
-            if curl -s http://localhost:8081/ >/dev/null; then
-              echo "✅ Application is UP"
-              break
+# Always cleanup
+trap "kill $APP_PID >/dev/null 2>&1 || true" EXIT
 
-            fi
-            echo "Not up yet... retry $i"
-            sleep 5
-          done
+echo "Waiting for app to become reachable..."
+for i in {1..30}; do
 
-          # Final check
-          curl -f http://localhost:8081/ || (
-            echo "❌ Application did not start. Showing logs:";
-            tail -n 200 app.log;
-            kill $APP_PID;
-            exit 1
-          )
+  # If the process died, fail fast with logs
+  if ! kill -0 $APP_PID >/dev/null 2>&1; then
+    echo "❌ App process exited early. Logs:"
+    tail -n 200 app.log || true
+    exit 1
+  fi
 
-          kill $APP_PID
-        '''
+  if curl -fsS "http://localhost:$PORT/" >/dev/null 2>&1; then
+    echo "✅ Application is UP"
+    exit 0
+  fi
+
+  echo "Not up yet... retry $i"
+  sleep 2
+done
+
+echo "❌ Timed out waiting for app. Logs:"
+tail -n 200 app.log || true
+exit 1
+'''
       }
     }
 
