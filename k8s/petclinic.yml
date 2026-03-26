@@ -1,15 +1,14 @@
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: petclinic
+  name: petclinic-service
 spec:
-  type: NodePort
+  type: LoadBalancer
+  selector:
+    app: petclinic
   ports:
     - port: 80
       targetPort: 8080
-  selector:
-    app: petclinic
 
 ---
 apiVersion: apps/v1
@@ -19,7 +18,7 @@ metadata:
   labels:
     app: petclinic
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: petclinic
@@ -28,37 +27,10 @@ spec:
       labels:
         app: petclinic
     spec:
+      imagePullSecrets:
+        - name: nexus-regcred
       containers:
-        - name: workload
-          image: dsyer/petclinic
-          env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: postgres
-            - name: SERVICE_BINDING_ROOT
-              value: /bindings
-            - name: SPRING_APPLICATION_JSON
-              value: |
-                {
-                  "management.endpoint.health.probes.add-additional-paths": true
-                }
+        - name: petclinic
+          image: 13.206.67.148:8083/petclinic:1
           ports:
-            - name: http
-              containerPort: 8080
-          livenessProbe:
-            httpGet:
-              path: /livez
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: http
-          volumeMounts:
-            - mountPath: /bindings/secret
-              name: binding
-              readOnly: true
-      volumes:
-        - name: binding
-          projected:
-            sources:
-              - secret:
-                  name: demo-db
+            - containerPort: 8080
