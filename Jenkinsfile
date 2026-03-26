@@ -38,19 +38,44 @@ pipeline {
       }
     }
 
+
     stage('Functional Testing') {
       agent { label 'build' }
+      environment {
+        JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+      }
       steps {
         sh '''
           set -eux
+
+          echo "Starting app for functional testing on port 8081"
           nohup java -jar target/*.jar --server.port=8081 > app.log 2>&1 &
           APP_PID=$!
-          sleep 20
-          curl -f http://localhost:8081/
+
+          echo "Waiting for application to start..."
+          for i in {1..10}; do
+            if curl -s http://localhost:8081/ >/dev/null; then
+              echo "Application is UP"
+              break
+            fi
+            echo "Not up yet... retry $i"
+            sleep 10
+          done
+
+          # Final verification
+          curl -f http://localhost:8081/ || (
+            echo "Application did not start. Showing logs:";
+            tail -n 200 app.log;
+            kill $APP_PID;
+            exit 1
+          )
+
           kill $APP_PID
         '''
       }
     }
+
 
     stage('Performance Testing') {
       agent { label 'build' }
