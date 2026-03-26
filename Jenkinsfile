@@ -50,22 +50,27 @@ pipeline {
           set -eux
 
           echo "Starting app for functional testing on port 8081"
-          nohup java -jar target/*.jar --server.port=8081 > app.log 2>&1 &
+
+          nohup java -jar target/spring-petclinic-4.0.0-SNAPSHOT.jar --server.port=8081 > app.log 2>&1 &
           APP_PID=$!
 
+          echo "APP_PID=$APP_PID"
+          sleep 2
+
           echo "Waiting for application to start..."
-          for i in {1..10}; do
+          for i in {1..15}; do
             if curl -s http://localhost:8081/ >/dev/null; then
-              echo "Application is UP"
+              echo "✅ Application is UP"
               break
+
             fi
             echo "Not up yet... retry $i"
-            sleep 10
+            sleep 5
           done
 
-          # Final verification
+          # Final check
           curl -f http://localhost:8081/ || (
-            echo "Application did not start. Showing logs:";
+            echo "❌ Application did not start. Showing logs:";
             tail -n 200 app.log;
             kill $APP_PID;
             exit 1
@@ -75,7 +80,6 @@ pipeline {
         '''
       }
     }
-
 
     stage('Performance Testing') {
       agent { label 'build' }
