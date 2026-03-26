@@ -26,6 +26,8 @@ spec:
     metadata:
       labels:
         app: petclinic
+      annotations:
+        gitops-trigger: "jenkins-verify-1"
     spec:
       imagePullSecrets:
         - name: nexus-regcred
